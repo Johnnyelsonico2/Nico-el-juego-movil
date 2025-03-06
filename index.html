@@ -12,31 +12,38 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-image: url('cosmos.jpg');
-            background-size: cover;
-            background-position: left center;
+            background-image: url('fondo2.jpg'); /* Cambia 'fondo2.jpg' por el nombre correcto de la imagen */
+            background-size: cover;  /* Asegura que la imagen cubra toda la pantalla */
+            background-position: center center;  /* Centra la imagen */
+            background-attachment: fixed;  /* Fija la imagen para que no se mueva al hacer scroll */
             flex-direction: column;
         }
+
         canvas {
             display: block;
             position: absolute;
             width: 60vw;
             height: 100vh;
         }
+
         .controls {
             position: absolute;
+            right: 20px;  /* Los botones estarán pegados al lado derecho de la pantalla */
             bottom: 20px;
             display: flex;
+            flex-direction: column; /* Organiza los botones en columna */
             gap: 10px;
         }
+
         .controls button {
-            font-size: 20px;
-            padding: 10px;
+            font-size: 26px;  /* Agrandado al 30% */
+            padding: 12px;  /* Agrandado al 30% */
             border: none;
             background-color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
             border-radius: 5px;
         }
+
         .game-over-container {
             display: none;
             position: absolute;
@@ -45,15 +52,18 @@
             transform: translate(-50%, -50%);
             text-align: center;
         }
+
         .game-over-image {
             width: 180px;
         }
+
         .game-over-text {
             font-size: 20px;
             font-weight: bold;
             color: white;
             margin-top: 10px;
         }
+
         .score, .best-score {
             position: absolute;
             top: 20px;
@@ -62,15 +72,30 @@
             color: white;
             font-weight: bold;
         }
+
         .best-score {
             top: 50px;
         }
+
+        #startGameBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            font-size: 20px;
+            background-color: rgba(0, 255, 0, 0.7);
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
     </style>
 </head>
 <body>
-    <audio id="musica" src="Teadoramos.mp3" autoplay loop></audio>
-    <audio id="risa" src="Risaa.mp3"></audio>
-    <audio id="comoteven" src="comoteven.mp3"></audio>
+    <audio id="musica" src="Nevernave.mp3" loop></audio>
+    <audio id="risa" src="Risa.mp3"></audio>
+    <audio id="comoteven" src="Comotevente.mp3"></audio>
     
     <canvas id="gameCanvas"></canvas>
 
@@ -88,6 +113,8 @@
 
     <div id="score" class="score">Puntos: 0</div>
     <div id="bestScore" class="best-score">Mejor Puntuación: 0</div>
+
+    <button id="startGameBtn">Iniciar Juego</button>
     
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -96,21 +123,21 @@
         const moveRightBtn = document.getElementById("moveRight");
         const shootBtn = document.getElementById("shoot");
         const restartBtn = document.getElementById("restart");
+        const startGameBtn = document.getElementById("startGameBtn");
+        const musica = document.getElementById("musica");
+        const risa = document.getElementById("risa");
+        const comoteven = document.getElementById("comoteven");
 
         const nave = new Image();
         const asteroideImg = new Image();
         nave.src = "Nico.png";
         asteroideImg.src = "Tcplogou.png";
-        let naveX, naveY, asteroides = [], proyectiles = [], gameOver = false;
-        const naveSize = 67.5; // 100% más chica
-        const velocidadAsteroides = 3;
-        let puntuacion = 0;
-
-        // Aumentar tamaño de los asteroides en un 30%
-        const asteroideSize = 50 * 1.3; // 30% más grandes
-
-        // Reducir tamaño de la palabra "NO" en un 20%
-        const fontSize = 30 * 0.8; // 20% más pequeños
+        let naveX, naveY, asteroides = [], proyectiles = [], gameOver = false, score = 0;
+        let gameStarted = false;
+        let isPaused = false; // Nueva variable para manejar el estado de pausa
+        let velocidadAsteroides = 3; // Velocidad inicial de los asteroides
+        const naveSize = 67.5; 
+        const asteroideSize = 75;  // Nuevo tamaño cuadrado para los asteroides (75px)
 
         function ajustarCanvas() {
             canvas.width = window.innerHeight * 0.6;
@@ -120,58 +147,58 @@
         }
 
         function disparar() {
-            if (!gameOver) {
-                // Agregar el proyectil como un objeto con la posición y velocidad
+            if (!gameOver && !isPaused) {
                 proyectiles.push({ x: naveX + naveSize / 2, y: naveY });
             }
         }
 
-        function detectarColisiones() {
-            proyectiles.forEach((p, pIndex) => {
-                asteroides.forEach((a, aIndex) => {
-                    // Detectar colisión entre el proyectil (NO) y el asteroide
-                    if (
-                        p.x < a.x + asteroideSize &&
-                        p.x + 30 > a.x &&
-                        p.y < a.y + asteroideSize &&
-                        p.y + 20 > a.y
-                    ) {
-                        // Si hay colisión, eliminar el asteroide y el proyectil
-                        asteroides.splice(aIndex, 1);
-                        proyectiles.splice(pIndex, 1);
-                        puntuacion += 10; // Aumentar puntos por destruir un asteroide
-                        document.getElementById("score").innerText = `Puntos: ${puntuacion}`;
-                    }
-                });
-            });
-        }
-
         function actualizarJuego() {
-            if (gameOver) return;
+            if (gameOver || isPaused) return; // Detener actualización si está pausado o ya terminó el juego
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(nave, naveX, naveY, naveSize, naveSize);
             
             proyectiles.forEach((p, i) => {
-                p.y -= 5; // Movimiento hacia arriba de los proyectiles
+                p.y -= 5;
+                ctx.font = "30px Arial";
                 ctx.fillStyle = "white";
-                ctx.font = `${fontSize}px Arial`; // Fuente y tamaño de la palabra "NO"
-                ctx.fillText("NO", p.x - 15, p.y); // Dibujamos la palabra "NO"
-                if (p.y < 0) proyectiles.splice(i, 1); // Eliminar proyectiles fuera de la pantalla
+                ctx.fillText("NO", p.x, p.y); // Dibuja la palabra "NO" como proyectil
+                if (p.y < 0) proyectiles.splice(i, 1);
+                
+                asteroides.forEach((a, j) => {
+                    if (p.x < a.x + asteroideSize && p.x + 30 > a.x && p.y < a.y + asteroideSize && p.y + 30 > a.y) {  // Se ajustó el tamaño de la palabra "NO"
+                        asteroides.splice(j, 1);  // Eliminar asteroide
+                        proyectiles.splice(i, 1); // Eliminar proyectil
+                        risa.currentTime = 0;  // Reiniciar sonido
+                        risa.play();  // Reproducir sonido
+                        score += 10;  // Aumentar puntos
+                        document.getElementById("score").innerText = `Puntos: ${score}`;  // Actualizar puntos
+
+                        // Cada vez que se alcanzan 50 puntos, aumentar la velocidad de los asteroides
+                        if (score % 50 === 0) {
+                            velocidadAsteroides *= 1.3;  // Aumentar velocidad en un 30%
+                        }
+                    }
+                });
             });
             
             asteroides.forEach((a, i) => {
                 a.y += velocidadAsteroides;
-                ctx.drawImage(asteroideImg, a.x, a.y, asteroideSize, asteroideSize); // Dibujar asteroides más grandes
+                ctx.drawImage(asteroideImg, a.x, a.y, asteroideSize, asteroideSize); // Asteroides con tamaño cuadrado de 75px
                 if (a.y > canvas.height) asteroides.splice(i, 1);
                 
                 if (naveX < a.x + asteroideSize && naveX + naveSize > a.x && naveY < a.y + asteroideSize && naveY + naveSize > a.y) {
                     gameOver = true;
+                    comoteven.currentTime = 0;  // Reiniciar sonido
+                    comoteven.play();  // Reproducir sonido
                     document.getElementById("gameOverContainer").style.display = "block";
+                    musica.pause();  // Detener música al perder
+                    if (score > parseInt(localStorage.getItem("bestScore") || 0)) {
+                        localStorage.setItem("bestScore", score);  // Guardar mejor puntaje
+                    }
+                    document.getElementById("bestScore").innerText = `Mejor Puntuación: ${localStorage.getItem("bestScore")}`;
                 }
             });
-
-            detectarColisiones(); // Verificar colisiones después de cada actualización
             requestAnimationFrame(actualizarJuego);
         }
 
@@ -179,10 +206,34 @@
             gameOver = false;
             asteroides = [];
             proyectiles = [];
-            puntuacion = 0;
-            document.getElementById("score").innerText = `Puntos: ${puntuacion}`;
+            score = 0;  // Reiniciar puntaje
+            velocidadAsteroides = 3;  // Reiniciar velocidad de los asteroides
+            document.getElementById("score").innerText = `Puntos: ${score}`;  // Actualizar puntos
             document.getElementById("gameOverContainer").style.display = "none";
             actualizarJuego();
+            musica.currentTime = 0;  // Reiniciar música
+            musica.play();  // Reproducir música
+        }
+
+        function iniciarPausarJuego() {
+            if (!gameStarted) {
+                gameStarted = true;
+                startGameBtn.innerText = "Pausar Juego";  // Cambiar texto del botón a "Pausar"
+                musica.play();  // Iniciar música
+                setInterval(() => {
+                    if (!gameOver && !isPaused) asteroides.push({ x: Math.random() * (canvas.width - asteroideSize), y: 0 });
+                }, 1000);
+                actualizarJuego();
+            } else if (isPaused) {
+                isPaused = false;
+                startGameBtn.innerText = "Pausar Juego";  // Cambiar texto del botón a "Pausar"
+                musica.play();  // Reanudar música
+                actualizarJuego();
+            } else {
+                isPaused = true;
+                startGameBtn.innerText = "Reanudar Juego";  // Cambiar texto del botón a "Reanudar"
+                musica.pause();  // Pausar música
+            }
         }
 
         window.addEventListener("resize", ajustarCanvas);
@@ -196,12 +247,7 @@
         });
         shootBtn.addEventListener("click", disparar);
         restartBtn.addEventListener("click", reiniciarJuego);
-        
-        setInterval(() => {
-            if (!gameOver) asteroides.push({ x: Math.random() * (canvas.width - asteroideSize), y: 0 });
-        }, 1000);
-
-        actualizarJuego();
+        startGameBtn.addEventListener("click", iniciarPausarJuego);
     </script>
 </body>
 </html>
